@@ -1,0 +1,65 @@
+#!/local/usr/bin/ruby
+
+require 'rubygems'
+require '<mailgem>'
+require 'fileutils'
+
+class SpreadsheetManager
+
+  attr_accessor :folio_num
+
+  def initialize(folio_num)
+    @folio_num = folio_num
+  end
+
+  def check_folio_num
+    if folio_num =~ /\A\d{7}\z/
+      search_lockfile
+    else
+      puts <<-EOF
+
+        USAGE: unlock_ss <folio number>
+
+      EOF
+    end
+  end
+
+  def search_lockfile
+    lockfile = "/path/to/file/.~lock.#{@folio_num}.ods#"
+    if File.exist?(lockfile)
+      puts "File: #{folio_num}.ods, found in lockfiles."
+      unlock_file(lockfile)
+    else
+      puts "File: #{folio_num}.ods, not found within lockfiles."
+      send_mail
+      raise LoadError.new("#{folio_num} not found, check lockfiles maunaully.")
+    end
+  end
+
+  def unlock_file(lockfile)
+    puts "Removing file from list"
+    FileUtils.rm(lockfile)
+    puts "Spreadsheet: #{folio_num}.ods; removed from lockfile list."
+    log_data
+  end
+
+  def log_data
+    log = "/path/to/log/sslog.txt"
+    x = "[#{Time.now}]::File: #{folio_num}.ods unlocked."
+    File.open(log, "a+") { |s| s.puts(x) }
+  end
+
+  def send_mail
+    MailGem::Mail.new do |m|
+      m.from               = '<email-address>'
+      m.to                 = '<email-address>'
+      m.subject            = 'Folio loading error'
+      m.body               = "File: #{folio_num}.ods not found in lockfiles..",
+                             "Check folio numbers and lockfiles and try again",
+                             "If file is found contact admin."
+    end.send
+  end
+end
+
+test = SpreadsheetManager.new(ARGV[0])
+test.check_folio_num
