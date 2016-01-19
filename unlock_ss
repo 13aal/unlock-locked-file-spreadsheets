@@ -61,5 +61,5 @@ class SpreadsheetManager
   end
 end
 
-test = SpreadsheetManager.new(ARGV[0])
-test.check_folio_num
+manage = SpreadsheetManager.new(ARGV[0])
+manage.check_folio_num
